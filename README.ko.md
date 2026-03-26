@@ -445,7 +445,7 @@ claude --agent .claude/agents/gdpr-agent.md
 
 ---
 
-## 법무법인 진주 (Law Firm Pearl)
+## 법무법인 진주 (Jinju Law Firm)
 
 **법무법인 진주** 소속 전문 법률 AI 에이전트 시리즈:
 
