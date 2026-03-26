@@ -50,7 +50,7 @@ GDPR Expert는 다른 접근을 취합니다: **더 똑똑한 검색 대신, 더
 
 ```mermaid
 graph TB
-    subgraph agent["<b>GDPR Expert Agent</b><br/>Kim De Bruyne (김덕배) · Senior Associate · Brussels"]
+    subgraph agent["<b>GDPR Expert Agent</b>"]
         direction TB
 
         subgraph core["핵심 기능"]
@@ -108,33 +108,54 @@ graph TB
 
 대부분의 법률 AI 도구는 "PDF 업로드"를 요구합니다. 우리는 공식 EU 소스에서 법령을 직접 가져와 HTML/XML 구조를 파싱하고, 조문 단위 Markdown 파일을 생성하는 **자동화된 파이프라인**을 구축했습니다.
 
-```
-                    법령 원문                                 EDPB 문서
-                      |                                         |
-          Publications Office                            edpb.europa.eu
-          CELLAR REST API                                  PDF 다운로드
-      (인증 불필요)                                            |
-                |                                              v
-                v                                     markitdown CLI
-    구조화된 XHTML                                    (PDF -> Markdown)
-    (art_1...art_99 ID 포함)                               |
-                |                                          v
-                v                                  Frontmatter 생성
-    Python: fetch-eu-legislation.py                (키워드, GDPR 조문,
-    - XHTML 파싱 -> 조문 추출                       토픽, 문자수)
-    - Recital 추출 (rct_1...rct_173)                       |
-    - 교차참조 맵 생성                                      v
-    - YAML frontmatter 생성               library/grade-a/edpb-guidelines/
-    - 조문별 art{N}.md 저장                library/grade-a/edpb-opinions/
-                |                          library/grade-a/edpb-binding-decisions/
-                v
-    library/grade-a/gdpr/art1.md                   JSON 인덱스
-    library/grade-a/gdpr/art2.md       build-indexes.py --type all
-    ...                                - article-index.json (321 조문)
-    library/grade-a/gdpr/art99.md      - recital-index.json (173 Recital)
-    library/grade-a/gdpr-recitals/     - edpb-document-index.json (120 문서)
-        recital1.md ... recital173.md  - case-index.json (51 판례)
-                                       - enforcement-index.json (35 결정)
+```mermaid
+flowchart TD
+    subgraph leg["법령 (Legislation)"]
+        direction TB
+        PO["<b>Publications Office</b><br/>CELLAR REST API<br/><i>인증 불필요</i>"]
+        XHTML["구조화된 XHTML<br/>조문별 ID (art_1 … art_99)"]
+        FETCH["<b>fetch-eu-legislation.py</b><br/>XHTML 파싱 → 조문 추출<br/>Recital 추출 (rct_1 … rct_173)<br/>교차참조 맵 생성<br/>YAML frontmatter 생성"]
+        ARTS["<code>library/grade-a/gdpr/</code><br/>art1.md … art99.md"]
+        RECS["<code>library/grade-a/gdpr-recitals/</code><br/>recital1.md … recital173.md"]
+        PO --> XHTML --> FETCH
+        FETCH --> ARTS
+        FETCH --> RECS
+    end
+
+    subgraph edpb["EDPB 문서"]
+        direction TB
+        EDPB_SRC["<b>edpb.europa.eu</b><br/>PDF 다운로드"]
+        MARK["<b>markitdown CLI</b><br/>PDF → Markdown"]
+        FRONT["<b>Frontmatter 생성</b><br/>키워드 · GDPR 조문<br/>주제 · char_count"]
+        EDPB_OUT["<code>library/grade-a/edpb-guidelines/</code><br/><code>library/grade-a/edpb-opinions/</code><br/><code>library/grade-a/edpb-binding-decisions/</code>"]
+        EDPB_SRC --> MARK --> FRONT --> EDPB_OUT
+    end
+
+    subgraph idx["JSON 인덱스"]
+        direction TB
+        BUILD["<b>build-indexes.py --type all</b>"]
+        IDXOUT["article-index.json · 321 조문<br/>recital-index.json · 173 Recital<br/>edpb-document-index.json · 120 문서<br/>case-index.json · 51 판례<br/>enforcement-index.json · 35 집행결정"]
+        BUILD --> IDXOUT
+    end
+
+    ARTS --> BUILD
+    RECS --> BUILD
+    EDPB_OUT --> BUILD
+
+    style leg fill:#eff6ff,stroke:#2563eb,stroke-width:2px
+    style edpb fill:#eff6ff,stroke:#2563eb,stroke-width:2px
+    style idx fill:#f0fdf4,stroke:#16a34a,stroke-width:2px
+    style PO fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    style EDPB_SRC fill:#dbeafe,stroke:#3b82f6,color:#1e40af
+    style XHTML fill:#e0e7ff,stroke:#6366f1,color:#3730a3
+    style FETCH fill:#fef9c3,stroke:#ca8a04,color:#713f12
+    style MARK fill:#fef9c3,stroke:#ca8a04,color:#713f12
+    style FRONT fill:#fef9c3,stroke:#ca8a04,color:#713f12
+    style BUILD fill:#fef9c3,stroke:#ca8a04,color:#713f12
+    style ARTS fill:#d1fae5,stroke:#059669,color:#065f46
+    style RECS fill:#d1fae5,stroke:#059669,color:#065f46
+    style EDPB_OUT fill:#d1fae5,stroke:#059669,color:#065f46
+    style IDXOUT fill:#d1fae5,stroke:#059669,color:#065f46
 ```
 
 **핵심 설계 선택:** EU Publications Office의 **CELLAR REST API**를 사용합니다 — 웹 스크래핑이 아닙니다. `Accept: application/xhtml+xml` 헤더 하나로 전체 법령 텍스트를 조문별 ID(`art_1`, `art_2`, ... `art_99`)가 포함된 구조화 XHTML로 받을 수 있습니다. 인증 불필요. EUR-Lex 자체를 구동하는 동일한 인프라입니다.
@@ -262,7 +283,7 @@ flowchart TD
     subgraph web["Step 4: Multi-Layer 웹서치 <i>(KB 부족 시)</i>"]
         direction TB
         L1["<b>Layer 1 공식</b><br/>EUR-Lex · EDPB · CURIA · GDPRhub"]
-        L2["<b>Layer 2 로펌</b><br/>Freshfields · DLA Piper · Bird & Bird"]
+        L2["<b>Layer 2 로펌</b><br/>주요 국제 로펌"]
         L3["<b>Layer 3 학술</b><br/>SSRN · EDPL · IDPL"]
         L1 --> L2 --> L3
     end
@@ -274,21 +295,24 @@ flowchart TD
         PA <--> PB
     end
 
-    FC["<b>Fact-Check 서브에이전트</b><br/>모든 인용을 KB 원본과 대조"]
+    subgraph fc["Step 6: Fact-Check"]
+        FC["<b>Fact-Check 서브에이전트</b><br/>모든 인용을 KB 원본과 대조"]
+    end
 
     O["<b>검증된 법률 의견서</b><br/>DOCX · 인용 체계 · 리스크 매트릭스<br/>EN + KR 이중언어"]
 
     Q --> kb
     kb --> web
     web --> verify
-    verify --> FC
-    FC --> O
+    verify --> fc
+    fc --> O
 
     style Q fill:#ede9fe,stroke:#7c3aed,stroke-width:2px,color:#5b21b6
     style kb fill:#eff6ff,stroke:#2563eb,stroke-width:1px
     style web fill:#fefce8,stroke:#ca8a04,stroke-width:1px
     style verify fill:#fef2f2,stroke:#dc2626,stroke-width:1px
-    style FC fill:#fef2f2,stroke:#dc2626,stroke-width:1px
+    style fc fill:#fff7ed,stroke:#ea580c,stroke-width:1px
+    style FC fill:#fed7aa,stroke:#ea580c,color:#9a3412
     style O fill:#d1fae5,stroke:#059669,stroke-width:2px,color:#065f46
     style S1 fill:#dbeafe,stroke:#3b82f6,color:#1e40af
     style S2 fill:#dbeafe,stroke:#3b82f6,color:#1e40af
@@ -345,7 +369,7 @@ library/inbox/    <-- 아무 파일이나 드롭 (PDF, DOCX, HTML 등)
      |
      |-- 2. Grade 자동 판별 (내용 분석 기반)
      |       Grade A: 공식 소스 (eur-lex.europa.eu, edpb.europa.eu, 각국 DPA 도메인)
-     |       Grade B: 로펌 분석, 법원 결정 (freshfields.com, linklaters.com)
+     |       Grade B: 로펌 분석, 법원 결정, DPA 웹사이트
      |       Grade C: 학술 논문 (SSRN, 저널)
      |       Grade D: 뉴스, AI 요약 -> 경고와 함께 거부
      |
@@ -421,16 +445,20 @@ claude --agent .claude/agents/gdpr-agent.md
 
 ---
 
-## Legal AI Agent Family
+## 법무법인 진주 (Law Firm Pearl)
 
-| 에이전트 | 전문 분야 | 상태 |
-|---------|----------|------|
-| [PIPA-expert](https://github.com/kipeum86/PIPA-expert) | 한국 개인정보보호법 (PIPA) | Live |
-| **GDPR-expert** | **EU 데이터 보호법 (GDPR)** | **Live** |
-| [contract-review-agent](https://github.com/kipeum86/contract-review-agent) | 계약서 검토 | Live |
-| [game-legal-research](https://github.com/kipeum86/game-legal-research) | 게임 산업법 | Live |
-| [general-legal-research](https://github.com/kipeum86/general-legal-research) | 법률 리서치 | Live |
-| [legal-writing-agent](https://github.com/kipeum86/legal-writing-agent) | 법률 문서 작성 | Live |
+**법무법인 진주** 소속 전문 법률 AI 에이전트 시리즈:
+
+| 에이전트 | 변호사 | 전문 분야 |
+|---------|--------|----------|
+| [game-legal-research](https://github.com/kipeum86/game-legal-research) | 심진주 | 게임 산업법 |
+| [legal-translation-agent](https://github.com/kipeum86/legal-translation-agent) | 변혁기 | 법률 번역 |
+| [general-legal-research](https://github.com/kipeum86/general-legal-research) | 김재식 | 법률 리서치 |
+| [PIPA-expert](https://github.com/kipeum86/PIPA-expert) | 정보호 | 개인정보보호법 (PIPA) |
+| **[GDPR-expert](https://github.com/kipeum86/GDPR-expert)** | **김덕배** | **데이터 보호법 (GDPR)** |
+| [contract-review-agent](https://github.com/kipeum86/contract-review-agent) | 고덕수 | 계약서 검토 |
+| [legal-writing-agent](https://github.com/kipeum86/legal-writing-agent) | 한석봉 | 법률 문서 작성 |
+| [second-review-agent](https://github.com/kipeum86/second-review-agent) | 반성문 | 품질 리뷰 (파트너) |
 
 ---
 
