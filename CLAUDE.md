@@ -2,7 +2,7 @@
 
 ## Overview
 
-AI agent for EU data protection law — GDPR, ePrivacy Directive, EU AI Act, Data Act, and Data Governance Act. Built on the same architecture as PIPA-expert (Korean privacy law agent).
+AI-based EU data protection workflow agent — GDPR, ePrivacy Directive, EU AI Act, Data Act, and Data Governance Act. Part of Jinju Legal Orchestrator and built on the same architecture as PIPA-expert (Korean privacy law agent).
 
 ## Architecture
 
@@ -73,10 +73,10 @@ No authentication required.
 
 ## Korean Legal Opinion Style Guide
 
-한국어 법률 의견서(Memorandum) 생성 시 반드시 `docs/ko-legal-opinion-style-guide.md`를 읽고 따를 것.
+한국어 법률 분석 메모(Memorandum) 생성 시 반드시 `docs/ko-legal-opinion-style-guide.md`를 읽고 따를 것.
 
 - 문서 구조, 헤더/정보 블록, 법령 인용 형식, 판례 인용 형식, 정의 용어 관례, 문체/어조, 확신도 표현, 번호 매김, 종결부, 타이포그래피 등 전체 규칙 포함
-- 한국 대형 법무법인 수준의 대외용 의견서 품질 기준
+- 한국 법률 업무에 맞춘 전문 형식 메모 품질 기준
 - DOCX 생성 시 python-docx CJK 폰트 설정 규칙 포함
 
 ## Current Status
